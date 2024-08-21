@@ -3,98 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SI Table</title>
+    <title>SI Table with OOP</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table, th, td {
-            border: 1px solid black;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-        }
-        .toggle-btn {
-            cursor: pointer;
-            padding: 5px;
-            border: 1px solid black;
-            border-radius: 5px;
-        }
-        .dropdown {
-            width: 100%;
-        }
-    </style>
 </head>
 <body>
-    <h1>SI Table</h1>
-    <div>
-        <label for="siCount">Total Number of SI’s:</label>
-        <button onclick="changeSI(-1)">-</button>
-        <input type="number" id="siCount" value="1" min="0" max="112" onchange="updateTable()">
-        <button onclick="changeSI(1)">+</button>
-    </div>
-    <table id="siTable">
-        <!-- Table content will be populated here -->
-    </table>
 
-    <script>
-        const maxSI = 112;
+<h2>Total Number of SI's: <span id="totalSIs">20</span></h2>
+<div class="control-container">
+    <label for="numEnabled">Enabled Rows:</label>
+    <input type="number" id="numEnabled" value="20" min="0" max="112">
+    <button onclick="siTable.updateSIsFromInput()">Set</button>
+    <button onclick="siTable.incrementSIs()">+</button>
+    <button onclick="siTable.decrementSIs()">-</button>
+</div>
 
-        function changeSI(amount) {
-            const siCountInput = document.getElementById('siCount');
-            let currentCount = parseInt(siCountInput.value);
-            currentCount += amount;
-            if (currentCount < 0) currentCount = 0;
-            if (currentCount > maxSI) currentCount = maxSI;
-            siCountInput.value = currentCount;
-            updateTable();
+<table id="siTable">
+    <thead>
+        <tr>
+            <th>SI #</th>
+            <th>Toggle (Auto/Manual)</th>
+            <th>Dropdown</th>
+            <th>Text Field</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<script>
+    class TableRow {
+        constructor(rowNum, enabled, textValue) {
+            this.rowNum = rowNum;
+            this.enabled = enabled;
+            this.textValue = textValue || '';
+            this.rowElement = this.createRowElement();
         }
 
-        function updateTable() {
-            const siCount = parseInt(document.getElementById('siCount').value);
-            const table = document.getElementById('siTable');
-            table.innerHTML = ''; // Clear existing table content
+        createRowElement() {
+            const row = document.createElement('tr');
+            if (!this.enabled) row.classList.add('disabled');
 
-            if (siCount > 0) {
-                // Create table header
-                const headerRow = document.createElement('tr');
-                headerRow.innerHTML = `
-                    <th>Toggle</th>
-                    <th>Dropdown</th>
-                    <th>Text Input</th>
-                `;
-                table.appendChild(headerRow);
+            // SI # column
+            const siCell = document.createElement('td');
+            siCell.textContent = this.rowNum + 1;
+            row.appendChild(siCell);
 
-                // Create table rows
-                for (let i = 0; i < siCount; i++) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td><button class="toggle-btn" onclick="toggleButton(this)">Auto</button></td>
-                        <td>
-                            <select class="dropdown">
-                                <option>dropdownItem1</option>
-                                <option>dropdownItem2</option>
-                                <option>dropdownItem3</option>
-                                <option>dropdownItem4</option>
-                                <!-- Add more options as needed -->
-                            </select>
-                        </td>
-                        <td><input type="text" placeholder="Enter text"></td>
-                    `;
-                    table.appendChild(row);
-                }
+            // Toggle button column
+            const toggleCell = document.createElement('td');
+            const toggleButton = document.createElement('button');
+            toggleButton.className = 'toggle-button';
+            toggleButton.textContent = 'Auto';
+            toggleButton.onclick = () => {
+                toggleButton.textContent = toggleButton.textContent === 'Auto' ? 'Manual' : 'Auto';
+            };
+            toggleCell.appendChild(toggleButton);
+            row.appendChild(toggleCell);
+
+            // Dropdown column
+            const dropdownCell = document.createElement('td');
+            const dropdown = document.createElement('select');
+            dropdown.className = 'dropdown';
+            for (let i = 1; i <= 10; i++) {
+                const option = document.createElement('option');
+                option.text = `dropdownItem${i}`;
+                dropdown.add(option);
+            }
+            dropdownCell.appendChild(dropdown);
+            row.appendChild(dropdownCell);
+
+            // Text field column
+            const textFieldCell = document.createElement('td');
+            const textField = document.createElement('input');
+            textField.type = 'text';
+            textField.value = this.textValue;
+            textField.oninput = (e) => {
+                siTable.textValues[this.rowNum] = e.target.value;
+            };
+            textFieldCell.appendChild(textField);
+            row.appendChild(textFieldCell);
+
+            // Disable elements if the row is disabled
+            if (!this.enabled) {
+                toggleButton.disabled = true;
+                dropdown.disabled = true;
+                textField.disabled = true;
+            }
+
+            return row;
+        }
+    }
+
+    class SITable {
+        constructor(totalRows, initialSIs) {
+            this.totalRows = totalRows;
+            this.totalSIs = initialSIs;
+            this.textValues = {}; // Object to store text field values
+            this.tableBody = document.getElementById('siTable').getElementsByTagName('tbody')[0];
+            this.updateSICountDisplay();
+            this.renderTable();
+        }
+
+        updateSICountDisplay() {
+            document.getElementById('totalSIs').textContent = this.totalSIs;
+            document.getElementById('numEnabled').value = this.totalSIs;
+        }
+
+        renderTable() {
+            this.clearTable();
+            for (let i = 0; i < this.totalRows; i++) {
+                const textValue = this.textValues[i] || ''; // Get stored text value
+                const row = new TableRow(i, i < this.totalSIs, textValue);
+                this.tableBody.appendChild(row.rowElement);
             }
         }
 
-        function toggleButton(button) {
-            button.textContent = button.textContent === 'Auto' ? 'Manual' : 'Auto';
+        clearTable() {
+            while (this.tableBody.rows.length > 0) {
+                this.tableBody.deleteRow(0);
+            }
         }
 
-        // Initialize table on page load
-        updateTable();
-    </script>
+        incrementSIs() {
+            if (this.totalSIs < this.totalRows) {
+                this.totalSIs++;
+                this.updateSICountDisplay();
+                this.renderTable();
+            }
+        }
+
+        decrementSIs() {
+            if (this.totalSIs > 0) {
+                this.totalSIs--;
+                this.updateSICountDisplay();
+                this.renderTable();
+            }
+        }
+
+        updateSIsFromInput() {
+            const input = document.getElementById('numEnabled');
+            const newValue = parseInt(input.value, 10);
+
+            if (newValue >= 0 && newValue <= this.totalRows) {
+                this.totalSIs = newValue;
+                this.updateSICountDisplay();
+                this.renderTable();
+            } else {
+                alert('Value must be between 0 and ' + this.totalRows);
+            }
+        }
+    }
+
+    // Initialize the table with 112 rows and 20 enabled rows
+    const siTable = new SITable(112, 20);
+</script>
+
 </body>
 </html>
