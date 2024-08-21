@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SI Table with OOP</title>
+    <title>SI Table </title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -32,10 +32,12 @@
 
 <script>
     class TableRow {
-        constructor(rowNum, enabled, textValue) {
+        constructor(rowNum, enabled, textValue, dropdownValue, toggleValue) {
             this.rowNum = rowNum;
             this.enabled = enabled;
             this.textValue = textValue || '';
+            this.dropdownValue = dropdownValue || 'dropdownItem1';
+            this.toggleValue = toggleValue || 'Auto';
             this.rowElement = this.createRowElement();
         }
 
@@ -52,9 +54,11 @@
             const toggleCell = document.createElement('td');
             const toggleButton = document.createElement('button');
             toggleButton.className = 'toggle-button';
-            toggleButton.textContent = 'Auto';
+            toggleButton.textContent = this.toggleValue;
             toggleButton.onclick = () => {
-                toggleButton.textContent = toggleButton.textContent === 'Auto' ? 'Manual' : 'Auto';
+                const newValue = toggleButton.textContent === 'Auto' ? 'Manual' : 'Auto';
+                toggleButton.textContent = newValue;
+                this.saveState();
             };
             toggleCell.appendChild(toggleButton);
             row.appendChild(toggleCell);
@@ -66,8 +70,16 @@
             for (let i = 1; i <= 10; i++) {
                 const option = document.createElement('option');
                 option.text = `dropdownItem${i}`;
+                option.value = `dropdownItem${i}`;
+                if (option.value === this.dropdownValue) {
+                    option.selected = true;
+                }
                 dropdown.add(option);
             }
+            dropdown.onchange = (e) => {
+                this.dropdownValue = e.target.value;
+                this.saveState();
+            };
             dropdownCell.appendChild(dropdown);
             row.appendChild(dropdownCell);
 
@@ -77,7 +89,8 @@
             textField.type = 'text';
             textField.value = this.textValue;
             textField.oninput = (e) => {
-                siTable.textValues[this.rowNum] = e.target.value;
+                this.textValue = e.target.value;
+                this.saveState();
             };
             textFieldCell.appendChild(textField);
             row.appendChild(textFieldCell);
@@ -91,6 +104,17 @@
 
             return row;
         }
+
+        saveState() {
+            const savedState = JSON.parse(sessionStorage.getItem('siTableState')) || {};
+            savedState[this.rowNum] = {
+                enabled: this.enabled,
+                textValue: this.textValue,
+                dropdownValue: this.dropdownValue,
+                toggleValue: this.toggleValue
+            };
+            sessionStorage.setItem('siTableState', JSON.stringify(savedState));
+        }
     }
 
     class SITable {
@@ -99,8 +123,18 @@
             this.totalSIs = initialSIs;
             this.textValues = {}; // Object to store text field values
             this.tableBody = document.getElementById('siTable').getElementsByTagName('tbody')[0];
+            this.loadState();
             this.updateSICountDisplay();
             this.renderTable();
+        }
+
+        loadState() {
+            const savedState = JSON.parse(sessionStorage.getItem('siTableState')) || {};
+            for (let i = 0; i < this.totalRows; i++) {
+                if (savedState[i]) {
+                    this.textValues[i] = savedState[i].textValue || '';
+                }
+            }
         }
 
         updateSICountDisplay() {
@@ -112,7 +146,15 @@
             this.clearTable();
             for (let i = 0; i < this.totalRows; i++) {
                 const textValue = this.textValues[i] || ''; // Get stored text value
-                const row = new TableRow(i, i < this.totalSIs, textValue);
+                const savedState = JSON.parse(sessionStorage.getItem('siTableState')) || {};
+                const state = savedState[i] || {};
+                const row = new TableRow(
+                    i,
+                    i < this.totalSIs,
+                    state.textValue,
+                    state.dropdownValue,
+                    state.toggleValue
+                );
                 this.tableBody.appendChild(row.rowElement);
             }
         }
@@ -159,3 +201,4 @@
 
 </body>
 </html>
+
